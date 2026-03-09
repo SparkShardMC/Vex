@@ -1,0 +1,3 @@
+dependencies:
+  panda3d: pip install panda3d
+  pyyaml: pip install pyyaml
