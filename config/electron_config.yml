@@ -1,0 +1,14 @@
+windows:
+  output_name: VexInstaller.exe
+  icon: assets/icons/vex_icon.ico
+  build_dir: build/windows
+  electron_version: "25.3.1"
+
+mac:
+  output_name: VexInstaller.dmg
+  icon: assets/icons/vex_icon.icns
+  build_dir: build/mac
+  electron_version: "25.3.1"
+
+source_dir: ../        # Relative path to the game source root
+npm_install: true      # Automatically download Electron if needed
