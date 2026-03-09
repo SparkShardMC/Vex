@@ -1,6 +1,9 @@
 from direct.showbase.ShowBase import ShowBase
 from direct.gui.DirectGui import DirectButton
-from panda3d.core import TextNode, TransparencyAttrib
+from panda3d.core import TextNode, TransparencyAttrib, Point3, NodePath
+from panda3d.core import Filename, LPoint3, LVector3
+from panda3d.physics import ForceNode, LinearVectorForce
+from direct.particles.ParticleEffect import ParticleEffect
 import random
 import os
 
@@ -18,16 +21,10 @@ class MainMenu(ShowBase):
         self.bg.setColor(0,0,0,1)
         self.bg.setTransparency(TransparencyAttrib.MAlpha)
 
-        # ---- Spark Particles ----
-        self.particles = []
-        for _ in range(50):
-            pt = self.loader.loadModel("models/misc/sphere")
-            pt.reparentTo(self.render2d)
-            pt.setScale(random.uniform(0.01,0.03))
-            pt.setPos(random.uniform(-1,1),0,random.uniform(-1,1))
-            pt.setColor(1,1,1,random.uniform(0.5,1))
-            self.particles.append(pt)
-        taskMgr.add(self.move_particles, "MoveParticles")
+        # ---- Spark Particle System ----
+        self.spark = ParticleEffect()
+        self.spark.loadConfig("assets/particles/spark.ptf")
+        self.spark.start(parent=self.render2d, renderParent=self.render2d)
 
         # ---- VEX Logo ----
         self.create_vex_logo()
@@ -46,42 +43,36 @@ class MainMenu(ShowBase):
             frameColor=(0.2,0.2,0.2,1)
         )
 
-    # ---- Particle Motion ----
-    def move_particles(self, task):
-        for pt in self.particles:
-            x, y, z = pt.getPos()
-            z -= 0.002
-            if z < -1:
-                z = 1
-                x = random.uniform(-1,1)
-            pt.setPos(x,y,z)
-        return task.cont
+        # ---- Logo Text Pulse Task ----
+        taskMgr.add(self.pulse_text, "PulseTextTask")
+        self.pulse_scale = 0.2
+        self.pulse_direction = 1
 
-    # ---- VEX Logo ----
+    # ---- Logo ----
     def create_vex_logo(self):
-        # Soldier placeholder
+        # Load soldier model
         soldier_model = "assets/models/soldier.bam"
         if os.path.exists(soldier_model):
             soldier = self.loader.loadModel(soldier_model)
         else:
             soldier = self.loader.loadModel("models/misc/rgbCube")
         soldier.reparentTo(self.render2d)
-        soldier.setScale(0.2,0.2,0.4)
-        soldier.setPos(0,0,0.2)
+        soldier.setScale(0.3)
+        soldier.setPos(-0.1,0,0.1)
         soldier.setColor(0.8,0.8,0.8,1)
 
-        # Shield placeholder
+        # Load shield model
         shield_model = "assets/models/shield.bam"
         if os.path.exists(shield_model):
             shield = self.loader.loadModel(shield_model)
         else:
             shield = self.loader.loadModel("models/misc/sphere")
         shield.reparentTo(self.render2d)
-        shield.setScale(0.15)
-        shield.setPos(0.25,0,0.25)
+        shield.setScale(0.2)
+        shield.setPos(0.2,0,0.1)
         shield.setColor(0.7,0.7,0.7,1)
 
-        # VEX Text
+        # VEX text
         font_path = "assets/fonts/vex_inferno.ttf"
         if os.path.exists(font_path):
             vex_font = self.loader.loadFont(font_path)
@@ -93,7 +84,15 @@ class MainMenu(ShowBase):
         if vex_font:
             vex_text.setFont(vex_font)
         vex_text.setAlign(TextNode.ACenter)
-        vex_text_node = self.aspect2d.attachNewNode(vex_text)
-        vex_text_node.setScale(0.2)
-        vex_text_node.setPos(0,0,0.5)
-        vex_text_node.setColor(1,0.2,0.2,1)
+        self.vex_node = self.aspect2d.attachNewNode(vex_text)
+        self.vex_node.setScale(self.pulse_scale)
+        self.vex_node.setPos(0,0,0.5)
+        self.vex_node.setColor(1,0.2,0.2,1)
+
+    # ---- Pulse Effect for Text ----
+    def pulse_text(self, task):
+        self.pulse_scale += 0.001 * self.pulse_direction
+        if self.pulse_scale > 0.22 or self.pulse_scale < 0.18:
+            self.pulse_direction *= -1
+        self.vex_node.setScale(self.pulse_scale)
+        return task.cont
